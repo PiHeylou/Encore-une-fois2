@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Encore une fois</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f0f0f;
+      color: #f2f2f2;
+      font-family: "Georgia", serif;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+    }
+
+    #container {
+      max-width: 600px;
+      padding: 40px;
+    }
+
+    #text {
+      font-size: 1.3rem;
+      line-height: 1.6;
+      margin-bottom: 40px;
+      min-height: 100px;
+      transition: opacity 0.5s ease;
+      /* preserve line breaks */
+      white-space: pre-wrap;
+    }
+
+    #button {
+      padding: 14px 32px;
+      font-size: 1.1rem;
+      background-color: transparent;
+      border: 1px solid #f2f2f2;
+      color: #f2f2f2;
+      cursor: pointer;
+      transition: transform 0.4s ease, background-color 0.3s ease, color 0.3s ease;
+    }
+
+    #button:hover {
+      background-color: #f2f2f2;
+      color: #0f0f0f;
+    }
+
+    .hidden {
+      opacity: 0;
+    }
+
+    @media (max-width: 420px) {
+      #container { padding: 24px; }
+      #text { font-size: 1.05rem; }
+      #button { padding: 12px 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="text" aria-live="polite"></div>
+    <button id="button" type="button">Cliquer</button>
+  </div>
+
+  <script>
+    let clicks = 0;
+    let lastClickTime = Date.now();
+    let hasStopped = false;
+
+    const textElement = document.getElementById("text");
+    const button = document.getElementById("button");
+
+    const messages = [
+      "Clique. Juste une fois.",
+      "Encore.",
+      "Ça ne prend qu’une seconde.",
+      "Tu vois ? Rien de compliqué.",
+      "Tu peux t’arrêter quand tu veux.",
+      "Ou continuer.",
+      "La plupart continuent.",
+      "Pas parce qu’ils doivent.",
+      "Parce qu’ils espèrent.",
+      "Tu attends quelque chose ?",
+      "Une réponse ?",
+      "Une réaction ?",
+      "Une preuve que ça servait à quelque chose ?",
+      "Regarde-toi.",
+      "Toujours là.",
+      "Encore une fois.",
+      "Même maintenant.",
+      "Tu sais que rien ne va changer.",
+      "Et pourtant.",
+      "Tu cliques."
+    ];
+
+    function updateText() {
+      if (clicks < messages.length) {
+        textElement.textContent = messages[clicks];
+      } else {
+        textElement.textContent = "Tu continues sans qu’on te dise quoi que ce soit.";
+      }
+    }
+
+    button.addEventListener("click", () => {
+      clicks++;
+      lastClickTime = Date.now();
+      updateText();
+
+      if (clicks === 10) {
+        button.textContent = "Encore";
+      }
+
+      if (clicks === 15) {
+        button.style.transform = "scale(0.9)";
+      }
+
+      if (clicks === 18) {
+        button.style.transform = "scale(0.8)";
+      }
+
+      if (clicks === 22) {
+        button.style.display = "none";
+        textElement.textContent =
+          "Tu n’as plus rien à cliquer.\n\nMais tu es encore là.";
+        localStorage.setItem("fin", "obsession");
+      }
+    });
+
+    // Détection de l’arrêt volontaire
+    setInterval(() => {
+      if (!hasStopped && Date.now() - lastClickTime > 8000 && clicks > 5) {
+        hasStopped = true;
+        textElement.textContent =
+          "Tu t’es arrêté.\n\nSans qu’on te le demande.\n\nC’est rare.";
+        button.style.display = "none";
+        localStorage.setItem("fin", "lucidité");
+      }
+    }, 1000);
+
+    // Si le joueur est déjà venu
+    const previousEnd = localStorage.getItem("fin");
+    if (previousEnd) {
+      textElement.textContent =
+        "Tu es revenu.\n\nLa dernière fois, tu avais choisi :\n" +
+        (previousEnd === "lucidité" ? "d’arrêter." : "de continuer.");
+    } else {
+      updateText();
+    }
+
+    // Raccourci clavier: espace / entrée
+    window.addEventListener("keydown", (e) => {
+      if ((e.code === "Space" || e.code === "Enter") && button.style.display !== "none") {
+        e.preventDefault();
+        button.click();
+      }
+    });
+
+    // Pour réinitialiser pendant le développement : localStorage.clear()
+    // ou dans la console : localStorage.removeItem('fin')
+  </script>
+</body>
+</html>
