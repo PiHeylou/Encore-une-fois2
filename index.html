@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <title>Encore une fois – Shooter</title>
+  <style>
+    body {
+      margin: 0;
+      background: #050511;
+      color: #f5f5f5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      min-height: 100vh;
+    }
+
+    h1 {
+      margin: 10px 0 0;
+      font-size: 1.1rem;
+      opacity: 0.8;
+    }
+
+    #info {
+      font-size: 0.85rem;
+      margin-bottom: 10px;
+      opacity: 0.8;
+      text-align: center;
+    }
+
+    #gameContainer {
+      position: relative;
+    }
+
+    canvas {
+      background: radial-gradient(circle at top, #22224a, #050511);
+      border: 1px solid #444;
+      margin-top: 10px;
+      touch-action: none;
+    }
+
+    #overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      background: rgba(0, 0, 0, 0.65);
+      text-align: center;
+      color: #f5f5f5;
+      font-size: 1rem;
+      padding: 10px;
+    }
+
+    #overlay button {
+      margin-top: 10px;
+      padding: 8px 16px;
+      background: transparent;
+      border: 1px solid #f5f5f5;
+      color: #f5f5f5;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+
+    #overlay button:hover {
+      background: #f5f5f5;
+      color: #050511;
+    }
+  </style>
+</head>
+<body>
+  <h1>Encore une fois – petit shooter</h1>
+  <div id="info">
+    Flèches gauche/droite pour bouger – Espace pour tirer. <br />
+    Sur mobile : joue plutôt sur ordinateur, le clavier est nécessaire.
+  </div>
+
+  <div id="gameContainer">
+    <canvas id="game" width="320" height="480"></canvas>
+    <div id="overlay">
+      <div id="overlayText">
+        Clique sur “Encore” pour commencer.<br/><br/>
+        Tu bouges, ils bougent, tout le monde tire.<br/>
+        Combien de fois vas‑tu recommencer ?
+      </div>
+      <button id="startButton">Encore</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const overlayText = document.getElementById("overlayText");
+    const startButton = document.getElementById("startButton");
+
+    const W = canvas.width;
+    const H = canvas.height;
+
+    const player = {
+      x: W / 2 - 15,
+      y: H - 40,
+      w: 30,
+      h: 20,
+      speed: 4,
+      vx: 0,
+      color: "#f5f5f5",
+      alive: true,
+    };
+
+    let bullets = [];
+    let enemies = [];
+    let enemyBullets = [];
+    let keys = {};
+    let running = false;
+    let score = 0;
+    let frame = 0;
+
+    function spawnEnemies() {
+      enemies = [];
+      const rows = 3;
+      const cols = 6;
+      const spacingX = 40;
+      const spacingY = 30;
+      const offsetX = 30;
+      const offsetY = 40;
+
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          enemies.push({
+            x: offsetX + c * spacingX,
+            y: offsetY + r * spacingY,
+            w: 20,
+            h: 15,
+            vx: 0.6,
+            vy: 0.02,
+            color: "#ff5c7a",
+          });
+        }
+      }
+    }
+
+    function resetGame() {
+      player.x = W / 2 - 15;
+      player.y = H - 40;
+      player.alive = true;
+      bullets = [];
+      enemyBullets = [];
+      score = 0;
+      frame = 0;
+      spawnEnemies();
+    }
+
+    function startGame() {
+      resetGame();
+      running = true;
+      overlay.style.display = "none";
+      requestAnimationFrame(loop);
+    }
+
+    window.addEventListener("keydown", (e) => {
+      keys[e.code] = true;
+      if (e.code === "Space") {
+        e.preventDefault();
+      }
+    });
+
+    window.addEventListener("keyup", (e) => {
+      keys[e.code] = false;
+    });
+
+    function handleInput() {
+      player.vx = 0;
+      if (keys["ArrowLeft"]) player.vx = -player.speed;
+      if (keys["ArrowRight"]) player.vx = player.speed;
+
+      if (keys["Space"] && frame % 8 === 0) {
+        bullets.push({
+          x: player.x + player.w / 2 - 2,
+          y: player.y,
+          w: 4,
+          h: 10,
+          vy: -6,
+          color: "#7cf5ff",
+        });
+      }
+    }
+
+    function loop() {
+      if (!running) return;
+      frame++;
+      update();
+      draw();
+      requestAnimationFrame(loop);
+    }
+
+    function update() {
+      handleInput();
+
+      player.x += player.vx;
+      if (player.x < 0) player.x = 0;
+      if (player.x + player.w > W) player.x = W - player.w;
+
+      bullets.forEach((b) => (b.y += b.vy));
+      bullets = bullets.filter((b) => b.y + b.h > 0);
+
+      enemies.forEach((e) => {
+        e.x += e.vx;
+        e.y += e.vy;
+
+        if (e.x < 10 || e.x + e.w > W - 10) {
+          e.vx *= -1;
+        }
+
+        if (Math.random() < 0.003) {
+          enemyBullets.push({
+            x: e.x + e.w / 2 - 2,
+            y: e.y + e.h,
+            w: 4,
+            h: 10,
+            vy: 3,
+            color: "#ffdf6b",
+          });
+        }
+      });
+
+      enemyBullets.forEach((b) => (b.y += b.vy));
+      enemyBullets = enemyBullets.filter((b) => b.y < H + b.h);
+
+      bullets.forEach((b) => {
+        enemies.forEach((e) => {
+          if (rectHit(b, e)) {
+            e.dead = true;
+            b.dead = true;
+            score++;
+          }
+        });
+      });
+      enemies = enemies.filter((e) => !e.dead);
+      bullets = bullets.filter((b) => !b.dead);
+
+      enemies.forEach((e) => {
+        if (rectHit(e, player)) {
+          gameOver(false);
+        }
+      });
+      enemyBullets.forEach((b) => {
+        if (rectHit(b, player)) {
+          gameOver(false);
+        }
+      });
+
+      if (enemies.length === 0) {
+        gameOver(true);
+      }
+    }
+
+    function rectHit(a, b) {
+      return (
+        a.x < b.x + b.w &&
+        a.x + a.w > b.x &&
+        a.y < b.y + b.h &&
+        a.y + a.h > b.y
+      );
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, W, H);
+
+      ctx.fillStyle = "#050511";
+      ctx.fillRect(0, 0, W, H);
+
+      if (player.alive) {
+        ctx.fillStyle = player.color;
+        ctx.fillRect(player.x, player.y, player.w, player.h);
+      }
+
+      enemies.forEach((e) => {
+        ctx.fillStyle = e.color;
+        ctx.fillRect(e.x, e.y, e.w, e.h);
+      });
+
+      bullets.forEach((b) => {
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+      });
+
+      enemyBullets.forEach((b) => {
+        ctx.fillStyle = b.color;
+        ctx.fillRect(b.x, b.y, b.w, b.h);
+      });
+
+      ctx.fillStyle = "#f5f5f5";
+      ctx.font = "14px system-ui";
+      ctx.fillText("Score : " + score, 10, 20);
+    }
+
+    function gameOver(victory) {
+      running = false;
+      player.alive = false;
+      overlay.style.display = "flex";
+      overlayText.innerHTML = victory
+        ? "Tu as survécu à cette vague.<br/>Tu peux t’arrêter là.<br/><br/>Ou cliquer sur Encore."
+        : "Tu t’es fait toucher.<br/>Tu sais exactement ce qui t’a tué.<br/><br/>Encore une fois ?";
+      startButton.textContent = "Encore";
+    }
+
+    startButton.addEventListener("click", () => {
+      startGame();
+    });
+  </script>
+</body>
+</html>
